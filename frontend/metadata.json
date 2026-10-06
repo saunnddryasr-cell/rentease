@@ -1,0 +1,6 @@
+{
+  "name": "RentEase – Furniture & Appliance Rental Platform",
+  "description": "Flexible, affordable monthly rental platform for essential furniture and appliances for students and working professionals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
