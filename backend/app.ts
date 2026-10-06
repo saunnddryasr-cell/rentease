@@ -37,5 +37,33 @@ export async function createApp(): Promise<Express> {
   app.use('/api', cityRoutes);
   app.use('/api', analyticsRoutes);
 
+  // Root health check & API info
+  app.get('/api', (_req, res) => {
+    res.json({
+      service: 'RentEase Full-Stack Backend API',
+      status: 'online',
+      endpoints: {
+        health: '/api/health',
+        products: '/api/products',
+        orders: '/api/orders',
+        tickets: '/api/tickets',
+        claims: '/api/claims',
+        cities: '/api/cities',
+        analytics: '/api/analytics/kpis'
+      },
+      timestamp: new Date().toISOString()
+    });
+  });
+
   return app;
+}
+
+// Cached instance for serverless environments (e.g. Vercel)
+let cachedAppInstance: any = null;
+
+export default async function handler(req: any, res: any) {
+  if (!cachedAppInstance) {
+    cachedAppInstance = await createApp();
+  }
+  return cachedAppInstance(req, res);
 }
