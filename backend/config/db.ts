@@ -45,6 +45,14 @@ export function cleanMongoUri(raw?: string): string {
   if (!cleaned.startsWith('mongodb://') && !cleaned.startsWith('mongodb+srv://')) {
     return defaultUri;
   }
+  // If the user's URI does not specify retryWrites or database, ensure safe parameters
+  if (cleaned.includes('cluster0.kk44seh.mongodb.net') && !cleaned.includes('retryWrites=')) {
+    if (cleaned.includes('?')) {
+      cleaned = cleaned.replace('?', '?retryWrites=true&w=majority&');
+    } else {
+      cleaned = `${cleaned}?retryWrites=true&w=majority`;
+    }
+  }
   return cleaned;
 }
 
