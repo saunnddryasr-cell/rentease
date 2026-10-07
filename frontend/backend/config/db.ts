@@ -1,0 +1,147 @@
+import { MongoClient, Db } from 'mongodb';
+import {
+  INITIAL_PRODUCTS,
+  INITIAL_ORDERS,
+  INITIAL_MAINTENANCE_TICKETS,
+  INITIAL_CLAIMS,
+  SERVICE_CITIES
+} from '../data/seedData.ts';
+import {
+  Product,
+  RentalOrder,
+  MaintenanceTicket,
+  ReturnDamageClaim,
+  ServiceCity
+} from '../types/index.ts';
+
+// In-Memory state fallback
+export const inMemoryStore = {
+  products: [...INITIAL_PRODUCTS] as Product[],
+  orders: [...INITIAL_ORDERS] as RentalOrder[],
+  tickets: [...INITIAL_MAINTENANCE_TICKETS] as MaintenanceTicket[],
+  claims: [...INITIAL_CLAIMS] as ReturnDamageClaim[],
+  cities: [...SERVICE_CITIES] as ServiceCity[]
+};
+
+export interface DatabaseState {
+  client: MongoClient | null;
+  db: Db | null;
+  isConnected: boolean;
+  statusMessage: string;
+  cluster: string;
+  database: string;
+  externalBackend: string;
+  frontendUrl: string;
+}
+
+export function cleanMongoUri(raw?: string): string {
+  const defaultUri =
+    'mongodb+srv://saunnddryasr_db_user:sand11@cluster0.kk44seh.mongodb.net/rentease?retryWrites=true&w=majority&appName=Cluster0';
+  if (!raw) return defaultUri;
+  let cleaned = raw.trim();
+  cleaned = cleaned.replace(/^MONGODB_URI\s*=\s*/i, '');
+  cleaned = cleaned.replace(/^["']|["']$/g, '');
+  cleaned = cleaned.replace(/<YOUR_PASSWORD>|<db_password>/g, 'sand11');
+  if (!cleaned.startsWith('mongodb://') && !cleaned.startsWith('mongodb+srv://')) {
+    return defaultUri;
+  }
+  // If the user's URI does not specify retryWrites or database, ensure safe parameters
+  if (cleaned.includes('cluster0.kk44seh.mongodb.net') && !cleaned.includes('retryWrites=')) {
+    if (cleaned.includes('?')) {
+      cleaned = cleaned.replace('?', '?retryWrites=true&w=majority&');
+    } else {
+      cleaned = `${cleaned}?retryWrites=true&w=majority`;
+    }
+  }
+  return cleaned;
+}
+
+export function cleanBackendUrl(raw?: string): string {
+  const fallback = 'https://rentease1-31epwmjif-saunnddryasr-cells-projects.vercel.app';
+  if (!raw) return fallback;
+  let cleaned = raw.trim().replace(/^BACKEND_API_URL\s*=\s*/i, '').replace(/^["']|["']$/g, '');
+  if (!cleaned.startsWith('http://') && !cleaned.startsWith('https://')) return fallback;
+  if (!cleaned.includes('saunnddryasr') || cleaned.length < 35) return fallback;
+  return cleaned;
+}
+
+export function cleanFrontendUrl(raw?: string): string {
+  const fallback = 'https://rentease1-frontend-9kkh7d94a-saunnddryasr-cells-projects.vercel.app';
+  if (!raw) return fallback;
+  let cleaned = raw.trim().replace(/^FRONTEND_URL\s*=\s*/i, '').replace(/^["']|["']$/g, '');
+  if (!cleaned.startsWith('http://') && !cleaned.startsWith('https://')) return fallback;
+  return cleaned;
+}
+
+export const dbState: DatabaseState = {
+  client: null,
+  db: null,
+  isConnected: false,
+  statusMessage: 'Initializing connection...',
+  cluster: 'cluster0.kk44seh.mongodb.net',
+  database: 'rentease',
+  externalBackend: cleanBackendUrl(process.env.BACKEND_API_URL),
+  frontendUrl: cleanFrontendUrl(process.env.FRONTEND_URL)
+};
+
+export async function connectToDatabase(): Promise<DatabaseState> {
+  if (dbState.isConnected && dbState.db) {
+    return dbState;
+  }
+
+  const uri = cleanMongoUri(process.env.MONGODB_URI);
+
+  try {
+    console.log('[Backend DB] Connecting to MongoDB Atlas cluster...');
+    const client = new MongoClient(uri, {
+      connectTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 5000
+    });
+
+    await client.connect();
+    const db = client.db('rentease');
+
+    dbState.client = client;
+    dbState.db = db;
+    dbState.isConnected = true;
+    dbState.statusMessage = 'Connected to MongoDB Atlas (cluster0.kk44seh.mongodb.net / database: rentease)';
+    console.log('[Backend DB] Connected to MongoDB Atlas database: rentease');
+
+    // Auto-seed collections if empty
+    const productCount = await db.collection('products').countDocuments();
+    if (productCount === 0) {
+      console.log('[Backend DB] Seeding initial products collection...');
+      await db.collection('products').insertMany(INITIAL_PRODUCTS as any);
+    }
+
+    const orderCount = await db.collection('orders').countDocuments();
+    if (orderCount === 0) {
+      console.log('[Backend DB] Seeding initial orders collection...');
+      await db.collection('orders').insertMany(INITIAL_ORDERS as any);
+    }
+
+    const ticketCount = await db.collection('tickets').countDocuments();
+    if (ticketCount === 0) {
+      console.log('[Backend DB] Seeding initial maintenance tickets collection...');
+      await db.collection('tickets').insertMany(INITIAL_MAINTENANCE_TICKETS as any);
+    }
+
+    const claimCount = await db.collection('claims').countDocuments();
+    if (claimCount === 0) {
+      console.log('[Backend DB] Seeding initial return claims collection...');
+      await db.collection('claims').insertMany(INITIAL_CLAIMS as any);
+    }
+
+    const cityCount = await db.collection('cities').countDocuments();
+    if (cityCount === 0) {
+      console.log('[Backend DB] Seeding initial service cities collection...');
+      await db.collection('cities').insertMany(SERVICE_CITIES as any);
+    }
+  } catch (err: any) {
+    console.warn('[Backend DB] MongoDB Atlas connection notice:', err?.message || err);
+    dbState.isConnected = false;
+    dbState.statusMessage = `MongoDB notice: ${err?.message || 'Network delay'}. Running in-memory cached mode.`;
+  }
+
+  return dbState;
+}

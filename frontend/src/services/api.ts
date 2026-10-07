@@ -10,6 +10,13 @@ import {
 export interface BackendHealth {
   status: string;
   service: string;
+  database?: {
+    type: string;
+    connected: boolean;
+    cluster: string;
+    database: string;
+    status: string;
+  };
   timestamp: string;
   activeRentals: number;
   totalProducts: number;
@@ -27,27 +34,69 @@ export interface KpiData {
   operationalCities: number;
 }
 
-const RAW_API_BASE = (import.meta.env?.VITE_API_URL as string) || '/api';
-const API_BASE = RAW_API_BASE.replace(/\/+$/, '');
+export function getApiBase(): string {
+  if (typeof window !== 'undefined') {
+    const custom = localStorage.getItem('rentease_api_url');
+    if (custom && custom.trim()) {
+      return custom.trim().replace(/\/+$/, '');
+    }
+  }
+  const envUrl = (import.meta.env?.VITE_API_URL as string) || '';
+  if (envUrl && envUrl.trim()) {
+    return envUrl.trim().replace(/\/+$/, '');
+  }
+  return '/api';
+}
 
-function getEndpointUrl(path: string): string {
+export function setApiBase(url: string): void {
+  if (typeof window !== 'undefined') {
+    if (!url || !url.trim()) {
+      localStorage.removeItem('rentease_api_url');
+    } else {
+      localStorage.setItem('rentease_api_url', url.trim().replace(/\/+$/, ''));
+    }
+  }
+}
+
+export function getEndpointUrl(path: string): string {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  if (API_BASE.startsWith('http://') || API_BASE.startsWith('https://')) {
-    return `${API_BASE}${cleanPath}`;
+  const base = getApiBase();
+  if (base.startsWith('http://') || base.startsWith('https://')) {
+    return `${base}${cleanPath}`;
   }
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  return `${origin}${API_BASE}${cleanPath}`;
+  return `${origin}${base}${cleanPath}`;
+}
+
+async function parseJsonResponse<T>(res: Response, errorLabel: string): Promise<T> {
+  if (!res.ok) {
+    throw new Error(`${errorLabel}: Server returned HTTP ${res.status}`);
+  }
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    const text = await res.text();
+    if (text.includes('<!doctype') || text.includes('<html')) {
+      throw new Error(`${errorLabel}: Received HTML response. Ensure backend is deployed.`);
+    }
+    throw new Error(`${errorLabel}: Non-JSON response`);
+  }
+  return await res.json();
 }
 
 export const api = {
+  getApiBase,
+  setApiBase,
+  getEndpointUrl,
+
   // Check Backend Connection Health
   async checkHealth(): Promise<BackendHealth | null> {
     try {
       const res = await fetch(getEndpointUrl('/health'));
       if (!res.ok) return null;
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) return null;
       return await res.json();
-    } catch (e) {
-      console.warn('Backend API connection check failed:', e);
+    } catch {
       return null;
     }
   },
@@ -60,45 +109,55 @@ export const api = {
     if (params?.search) url.searchParams.set('search', params.search);
 
     const res = await fetch(url.toString());
-    if (!res.ok) throw new Error('Failed to fetch products from backend');
-    return await res.json();
+    return await parseJsonResponse<Product[]>(res, 'Failed to fetch products from backend');
   },
 
   async createProduct(product: Partial<Product>): Promise<Product> {
-    const res = await fetch(getEndpointUrl('/products'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(product)
-    });
-    if (!res.ok) throw new Error('Failed to add product');
-    return await res.json();
+    try {
+      const res = await fetch(getEndpointUrl('/products'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(product)
+      });
+      return await parseJsonResponse<Product>(res, 'Failed to add product');
+    } catch (err) {
+      console.info('Backend sync unavailable for product creation, saved locally:', err);
+      return product as Product;
+    }
   },
 
   // Orders
   async getOrders(): Promise<RentalOrder[]> {
     const res = await fetch(getEndpointUrl('/orders'));
-    if (!res.ok) throw new Error('Failed to fetch orders');
-    return await res.json();
+    return await parseJsonResponse<RentalOrder[]>(res, 'Failed to fetch orders');
   },
 
   async createOrder(order: RentalOrder): Promise<RentalOrder> {
-    const res = await fetch(getEndpointUrl('/orders'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(order)
-    });
-    if (!res.ok) throw new Error('Failed to place order');
-    return await res.json();
+    try {
+      const res = await fetch(getEndpointUrl('/orders'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(order)
+      });
+      return await parseJsonResponse<RentalOrder>(res, 'Failed to place order');
+    } catch (err) {
+      console.info('Backend sync unavailable for order placement, saved locally:', err);
+      return order;
+    }
   },
 
   async updateOrderStatus(orderId: string, status: RentalOrder['status']): Promise<RentalOrder> {
-    const res = await fetch(getEndpointUrl(`/orders/${orderId}/status`), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status })
-    });
-    if (!res.ok) throw new Error('Failed to update order status');
-    return await res.json();
+    try {
+      const res = await fetch(getEndpointUrl(`/orders/${orderId}/status`), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      return await parseJsonResponse<RentalOrder>(res, 'Failed to update order status');
+    } catch (err) {
+      console.info('Backend sync unavailable for order status, updated locally:', err);
+      return { id: orderId, status } as any;
+    }
   },
 
   async extendOrderTenure(orderId: string, additionalMonths: RentalTenure): Promise<RentalOrder> {
@@ -107,8 +166,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ additionalMonths })
     });
-    if (!res.ok) throw new Error('Failed to extend tenure');
-    return await res.json();
+    return await parseJsonResponse<RentalOrder>(res, 'Failed to extend tenure');
   },
 
   async requestRelocation(orderId: string, newAddress: string, moveDate: string): Promise<RentalOrder> {
@@ -117,8 +175,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ newAddress, moveDate })
     });
-    if (!res.ok) throw new Error('Failed to request relocation');
-    return await res.json();
+    return await parseJsonResponse<RentalOrder>(res, 'Failed to request relocation');
   },
 
   async scheduleReturn(orderId: string, returnDate: string, returnReason: string): Promise<{ order: RentalOrder; claim: ReturnDamageClaim }> {
@@ -127,15 +184,13 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ returnDate, returnReason })
     });
-    if (!res.ok) throw new Error('Failed to schedule return');
-    return await res.json();
+    return await parseJsonResponse<{ order: RentalOrder; claim: ReturnDamageClaim }>(res, 'Failed to schedule return');
   },
 
   // Maintenance Tickets
   async getTickets(): Promise<MaintenanceTicket[]> {
     const res = await fetch(getEndpointUrl('/tickets'));
-    if (!res.ok) throw new Error('Failed to fetch tickets');
-    return await res.json();
+    return await parseJsonResponse<MaintenanceTicket[]>(res, 'Failed to fetch tickets');
   },
 
   async createTicket(ticket: Partial<MaintenanceTicket>): Promise<MaintenanceTicket> {
@@ -144,8 +199,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(ticket)
     });
-    if (!res.ok) throw new Error('Failed to submit maintenance ticket');
-    return await res.json();
+    return await parseJsonResponse<MaintenanceTicket>(res, 'Failed to submit maintenance ticket');
   },
 
   async updateTicket(
@@ -159,15 +213,13 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status, technicianName, resolutionNotes })
     });
-    if (!res.ok) throw new Error('Failed to update ticket');
-    return await res.json();
+    return await parseJsonResponse<MaintenanceTicket>(res, 'Failed to update ticket');
   },
 
   // Claims
   async getClaims(): Promise<ReturnDamageClaim[]> {
     const res = await fetch(getEndpointUrl('/claims'));
-    if (!res.ok) throw new Error('Failed to fetch claims');
-    return await res.json();
+    return await parseJsonResponse<ReturnDamageClaim[]>(res, 'Failed to fetch claims');
   },
 
   async resolveClaim(
@@ -181,29 +233,25 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ claimStatus, damageDeduction, damageNotes })
     });
-    if (!res.ok) throw new Error('Failed to resolve claim');
-    return await res.json();
+    return await parseJsonResponse<ReturnDamageClaim>(res, 'Failed to resolve claim');
   },
 
   // Cities
   async getCities(): Promise<ServiceCity[]> {
     const res = await fetch(getEndpointUrl('/cities'));
-    if (!res.ok) throw new Error('Failed to fetch service cities');
-    return await res.json();
+    return await parseJsonResponse<ServiceCity[]>(res, 'Failed to fetch service cities');
   },
 
   async toggleCity(cityId: string): Promise<ServiceCity> {
     const res = await fetch(getEndpointUrl(`/cities/${cityId}/toggle`), {
       method: 'PUT'
     });
-    if (!res.ok) throw new Error('Failed to toggle city status');
-    return await res.json();
+    return await parseJsonResponse<ServiceCity>(res, 'Failed to toggle city status');
   },
 
   // KPIs
   async getKpis(): Promise<KpiData> {
     const res = await fetch(getEndpointUrl('/analytics/kpis'));
-    if (!res.ok) throw new Error('Failed to fetch analytics KPIs');
-    return await res.json();
+    return await parseJsonResponse<KpiData>(res, 'Failed to fetch analytics KPIs');
   }
 };

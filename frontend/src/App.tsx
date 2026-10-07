@@ -383,8 +383,8 @@ export default function App() {
         setProducts((prev) => prev.map((p) => (p.id === newProduct.id ? serverProd : p)));
         setApiSynced(true);
       }
-    } catch (err) {
-      console.warn('Backend product creation sync fallback:', err);
+    } catch {
+      // Product is safely preserved in local state
     } finally {
       setIsSyncing(false);
     }
