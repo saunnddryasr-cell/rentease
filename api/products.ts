@@ -1,9 +1,21 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getDb, inMemoryStore, type Product } from './_db.ts';
 
+function parseProductRoute(req: VercelRequest) {
+  const url = new URL(req.url || '', 'http://localhost');
+  const parts = url.pathname.split('/').filter(Boolean);
+  const baseIdx = parts.indexOf('products');
+  const query = req.query || {};
+  if (baseIdx === -1) {
+    return { id: (query.id as string) || '' };
+  }
+  const id = parts[baseIdx + 1] || (query.id as string) || '';
+  return { id };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
@@ -11,9 +23,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const db = await getDb();
+  const { id: productId } = parseProductRoute(req);
 
+  // 1. Single Product GET
+  if (req.method === 'GET' && productId) {
+    if (db) {
+      try {
+        const prod = await db.collection<Product>('products').findOne({ id: productId }, { projection: { _id: 0 } });
+        if (prod) return res.status(200).json(prod);
+      } catch (err) {
+        console.warn('MongoDB single product error:', err);
+      }
+    }
+    const memProd = inMemoryStore.products.find((p) => p.id === productId);
+    if (!memProd) return res.status(404).json({ error: 'Product not found' });
+    return res.status(200).json(memProd);
+  }
+
+  // 2. All Products GET
   if (req.method === 'GET') {
-    const { category, subCategory, search } = req.query;
+    const { category, subCategory, search } = req.query || {};
 
     if (db) {
       try {
@@ -23,7 +52,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (search && typeof search === 'string') {
           query.$or = [
             { title: { $regex: search, $options: 'i' } },
-            { description: { $regex: search, $options: 'i' } }
+            { description: { $regex: search, $options: 'i' } },
+            { category: { $regex: search, $options: 'i' } },
+            { subCategory: { $regex: search, $options: 'i' } }
           ];
         }
         const dbProducts = await db
@@ -48,12 +79,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (search && typeof search === 'string') {
       const q = search.toLowerCase();
       result = result.filter(
-        (p) => p.title.toLowerCase().includes(q) || p.description.toLowerCase().includes(q)
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          p.description.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q) ||
+          p.subCategory.toLowerCase().includes(q)
       );
     }
     return res.status(200).json(result);
   }
 
+  // 3. POST Create Product
   if (req.method === 'POST') {
     const body = req.body || {};
     const newProd: Product = {
@@ -87,6 +123,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     return res.status(201).json(newProd);
+  }
+
+  // 4. DELETE Product by ID
+  if (req.method === 'DELETE' && productId) {
+    inMemoryStore.products = inMemoryStore.products.filter((p) => p.id !== productId);
+    if (db) {
+      try {
+        await db.collection('products').deleteOne({ id: productId });
+      } catch (err) {
+        console.warn('MongoDB delete product error:', err);
+      }
+    }
+    return res.status(200).json({ success: true, deletedId: productId });
   }
 
   return res.status(405).json({ error: 'Method Not Allowed' });

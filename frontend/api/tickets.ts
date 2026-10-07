@@ -1,9 +1,21 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getDb, inMemoryStore, type MaintenanceTicket } from './_db.ts';
 
+function parseTicketRoute(req: VercelRequest) {
+  const url = new URL(req.url || '', 'http://localhost');
+  const parts = url.pathname.split('/').filter(Boolean);
+  const baseIdx = parts.indexOf('tickets');
+  const query = req.query || {};
+  if (baseIdx === -1) {
+    return { id: (query.id as string) || '' };
+  }
+  const id = parts[baseIdx + 1] || (query.id as string) || '';
+  return { id };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
@@ -11,7 +23,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const db = await getDb();
+  const { id: ticketId } = parseTicketRoute(req);
 
+  // 1. GET Tickets
   if (req.method === 'GET') {
     if (db) {
       try {
@@ -30,6 +44,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json(inMemoryStore.tickets);
   }
 
+  // 2. PUT Update Ticket (/api/tickets/:id)
+  if (req.method === 'PUT') {
+    const { status, technicianName, resolutionNotes } = req.body || {};
+    const ticket = inMemoryStore.tickets.find((t) => t.id === ticketId);
+
+    if (ticket) {
+      if (status) ticket.status = status;
+      if (technicianName) ticket.technicianName = technicianName;
+      if (resolutionNotes) ticket.resolutionNotes = resolutionNotes;
+    }
+
+    if (db && ticketId) {
+      try {
+        const updateFields: any = {};
+        if (status) updateFields.status = status;
+        if (technicianName) updateFields.technicianName = technicianName;
+        if (resolutionNotes) updateFields.resolutionNotes = resolutionNotes;
+        await db.collection('tickets').updateOne({ id: ticketId }, { $set: updateFields });
+      } catch (err) {
+        console.warn('MongoDB ticket update error:', err);
+      }
+    }
+
+    return res.status(200).json(ticket || { id: ticketId, status, technicianName, resolutionNotes });
+  }
+
+  // 3. POST Create Ticket (/api/tickets)
   if (req.method === 'POST') {
     const newTicket: MaintenanceTicket = {
       id: req.body.id || `tkt-${Date.now()}`,

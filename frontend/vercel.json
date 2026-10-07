@@ -2,6 +2,34 @@
   "version": 2,
   "rewrites": [
     {
+      "source": "/api/health",
+      "destination": "/api/health"
+    },
+    {
+      "source": "/api/products/:path*",
+      "destination": "/api/products"
+    },
+    {
+      "source": "/api/orders/:path*",
+      "destination": "/api/orders"
+    },
+    {
+      "source": "/api/tickets/:path*",
+      "destination": "/api/tickets"
+    },
+    {
+      "source": "/api/claims/:path*",
+      "destination": "/api/claims"
+    },
+    {
+      "source": "/api/cities/:path*",
+      "destination": "/api/cities"
+    },
+    {
+      "source": "/api/analytics/:path*",
+      "destination": "/api/analytics"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
