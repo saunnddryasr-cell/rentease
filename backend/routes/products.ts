@@ -1,8 +1,9 @@
-import { Router, Request, Response } from 'express';
+import express from 'express';
+import type { Request, Response } from 'express';
 import { dbState, inMemoryStore } from '../config/db.ts';
-import { Product } from '../types/index.ts';
+import type { Product } from '../types/index.ts';
 
-const router = Router();
+const router = express.Router();
 
 // GET all products
 router.get('/products', async (req: Request, res: Response) => {

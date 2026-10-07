@@ -1,4 +1,5 @@
-import express, { Express, Request, Response } from 'express';
+import express from 'express';
+import type { Express, Request, Response, NextFunction } from 'express';
 import { connectToDatabase } from './config/db.ts';
 import healthRoutes from './routes/health.ts';
 import productRoutes from './routes/products.ts';

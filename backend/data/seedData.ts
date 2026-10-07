@@ -1,4 +1,10 @@
-import { Product, RentalOrder, MaintenanceTicket, ReturnDamageClaim, ServiceCity } from '../types/index.ts';
+import type {
+  Product,
+  RentalOrder,
+  MaintenanceTicket,
+  ReturnDamageClaim,
+  ServiceCity
+} from '../types/index.ts';
 
 export const INITIAL_PRODUCTS: Product[] = [
   {

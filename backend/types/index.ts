@@ -131,3 +131,15 @@ export interface ServiceCity {
   isAvailable: boolean;
   estDeliveryHours: string;
 }
+
+// Runtime token exports to prevent Node ESM export stripping errors
+export const TYPES_VERSION = '1.0.0';
+export const Product = {} as any;
+export const RentalOrder = {} as any;
+export const MaintenanceTicket = {} as any;
+export const ReturnDamageClaim = {} as any;
+export const ServiceCity = {} as any;
+export const RentalTenure = {} as any;
+export const ProductCategory = {} as any;
+export const SubCategory = {} as any;
+

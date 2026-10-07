@@ -6,7 +6,7 @@ import {
   INITIAL_CLAIMS,
   SERVICE_CITIES
 } from '../data/seedData.ts';
-import {
+import type {
   Product,
   RentalOrder,
   MaintenanceTicket,

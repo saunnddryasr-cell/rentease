@@ -1,7 +1,8 @@
-import { Router, Request, Response } from 'express';
+import express from 'express';
+import type { Request, Response } from 'express';
 import { dbState, inMemoryStore } from '../config/db.ts';
 
-const router = Router();
+const router = express.Router();
 
 router.get('/health', async (_req: Request, res: Response) => {
   let orderCount = inMemoryStore.orders.length;

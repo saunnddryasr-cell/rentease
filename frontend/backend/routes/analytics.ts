@@ -1,8 +1,9 @@
-import { Router, Request, Response } from 'express';
+import express from 'express';
+import type { Request, Response } from 'express';
 import { dbState, inMemoryStore } from '../config/db.ts';
-import { Product, RentalOrder, MaintenanceTicket, ServiceCity } from '../types/index.ts';
+import type { Product, RentalOrder, MaintenanceTicket, ServiceCity } from '../types/index.ts';
 
-const router = Router();
+const router = express.Router();
 
 router.get('/analytics/kpis', async (_req: Request, res: Response) => {
   let orderList = inMemoryStore.orders;
