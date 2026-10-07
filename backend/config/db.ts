@@ -57,16 +57,15 @@ export function cleanMongoUri(raw?: string): string {
 }
 
 export function cleanBackendUrl(raw?: string): string {
-  const fallback = 'https://rentease1-31epwmjif-saunnddryasr-cells-projects.vercel.app';
+  const fallback = 'https://frontend-virid-iota-76.vercel.app';
   if (!raw) return fallback;
   let cleaned = raw.trim().replace(/^BACKEND_API_URL\s*=\s*/i, '').replace(/^["']|["']$/g, '');
   if (!cleaned.startsWith('http://') && !cleaned.startsWith('https://')) return fallback;
-  if (!cleaned.includes('saunnddryasr') || cleaned.length < 35) return fallback;
   return cleaned;
 }
 
 export function cleanFrontendUrl(raw?: string): string {
-  const fallback = 'https://rentease1-frontend-9kkh7d94a-saunnddryasr-cells-projects.vercel.app';
+  const fallback = 'https://frontend-virid-iota-76.vercel.app';
   if (!raw) return fallback;
   let cleaned = raw.trim().replace(/^FRONTEND_URL\s*=\s*/i, '').replace(/^["']|["']$/g, '');
   if (!cleaned.startsWith('http://') && !cleaned.startsWith('https://')) return fallback;
