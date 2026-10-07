@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { connectToDatabase, dbState, inMemoryStore } from '../backend/config/db.ts';
-import type { ReturnDamageClaim } from '../backend/types/index.ts';
+import { getDb, inMemoryStore, type ReturnDamageClaim } from './_db.ts';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,17 +10,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  await connectToDatabase();
+  const db = await getDb();
 
   if (req.method === 'GET') {
-    if (dbState.isConnected && dbState.db) {
+    if (db) {
       try {
-        const dbClaims = await dbState.db
+        const dbClaims = await db
           .collection<ReturnDamageClaim>('claims')
           .find({}, { projection: { _id: 0 } })
           .sort({ returnDate: -1 })
           .toArray();
-        return res.status(200).json(dbClaims);
+        if (dbClaims.length > 0) {
+          return res.status(200).json(dbClaims);
+        }
       } catch (err) {
         console.warn('MongoDB claims error:', err);
       }

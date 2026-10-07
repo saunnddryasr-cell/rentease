@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { connectToDatabase, dbState, inMemoryStore } from '../backend/config/db.ts';
+import { getDb, inMemoryStore } from './_db.ts';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -10,12 +10,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  await connectToDatabase();
+  const db = await getDb();
+  let isConnected = false;
 
-  const orderList = inMemoryStore.orders;
-  const productList = inMemoryStore.products;
-  const ticketList = inMemoryStore.tickets;
-  const cityList = inMemoryStore.cities;
+  let orderList = inMemoryStore.orders;
+  let productList = inMemoryStore.products;
+  let ticketList = inMemoryStore.tickets;
+  let cityList = inMemoryStore.cities;
+
+  if (db) {
+    try {
+      const [dbOrders, dbProducts, dbTickets, dbCities] = await Promise.all([
+        db.collection('orders').find({}).toArray(),
+        db.collection('products').find({}).toArray(),
+        db.collection('tickets').find({}).toArray(),
+        db.collection('cities').find({}).toArray()
+      ]);
+      if (dbOrders.length > 0) orderList = dbOrders as any;
+      if (dbProducts.length > 0) productList = dbProducts as any;
+      if (dbTickets.length > 0) ticketList = dbTickets as any;
+      if (dbCities.length > 0) cityList = dbCities as any;
+      isConnected = true;
+    } catch (err) {
+      console.warn('MongoDB analytics query error:', err);
+    }
+  }
 
   const activeOrders = orderList.filter((o) => o.status === 'active' || o.status === 'scheduled');
   const mrr = activeOrders.reduce((sum, o) => sum + (o.totalMonthlyRent || 0), 0);
@@ -35,8 +54,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     openTickets,
     operationalCities: cityList.filter((c) => c.isAvailable).length,
     database: {
-      connected: dbState.isConnected,
-      type: dbState.isConnected ? 'mongodb_atlas' : 'in_memory_cached'
+      connected: isConnected,
+      type: isConnected ? 'mongodb_atlas' : 'in_memory_cached'
     }
   });
 }

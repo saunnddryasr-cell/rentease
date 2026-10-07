@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { connectToDatabase, dbState, inMemoryStore } from '../backend/config/db.ts';
-import type { ServiceCity } from '../backend/types/index.ts';
+import { getDb, inMemoryStore, type ServiceCity } from './_db.ts';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,16 +10,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  await connectToDatabase();
+  const db = await getDb();
 
   if (req.method === 'GET') {
-    if (dbState.isConnected && dbState.db) {
+    if (db) {
       try {
-        const dbCities = await dbState.db
+        const dbCities = await db
           .collection<ServiceCity>('cities')
           .find({}, { projection: { _id: 0 } })
           .toArray();
-        return res.status(200).json(dbCities);
+        if (dbCities.length > 0) {
+          return res.status(200).json(dbCities);
+        }
       } catch (err) {
         console.warn('MongoDB cities error:', err);
       }

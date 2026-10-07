@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { connectToDatabase, dbState, inMemoryStore } from '../backend/config/db.ts';
-import type { Product } from '../backend/types/index.ts';
+import { getDb, inMemoryStore, type Product } from './_db.ts';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,12 +10,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  await connectToDatabase();
+  const db = await getDb();
 
   if (req.method === 'GET') {
     const { category, subCategory, search } = req.query;
 
-    if (dbState.isConnected && dbState.db) {
+    if (db) {
       try {
         const query: any = {};
         if (category && category !== 'all') query.category = category;
@@ -27,11 +26,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             { description: { $regex: search, $options: 'i' } }
           ];
         }
-        const dbProducts = await dbState.db
+        const dbProducts = await db
           .collection<Product>('products')
           .find(query, { projection: { _id: 0 } })
           .toArray();
-        return res.status(200).json(dbProducts);
+        if (dbProducts.length > 0) {
+          return res.status(200).json(dbProducts);
+        }
       } catch (err) {
         console.warn('MongoDB query notice:', err);
       }
@@ -77,9 +78,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     inMemoryStore.products.unshift(newProd);
 
-    if (dbState.isConnected && dbState.db) {
+    if (db) {
       try {
-        await dbState.db.collection('products').insertOne({ ...newProd } as any);
+        await db.collection('products').insertOne({ ...newProd } as any);
       } catch (err) {
         console.warn('MongoDB save notice:', err);
       }

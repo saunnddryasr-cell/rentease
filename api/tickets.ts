@@ -1,27 +1,28 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { connectToDatabase, dbState, inMemoryStore } from '../backend/config/db.ts';
-import type { MaintenanceTicket } from '../backend/types/index.ts';
+import { getDb, inMemoryStore, type MaintenanceTicket } from './_db.ts';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  await connectToDatabase();
+  const db = await getDb();
 
   if (req.method === 'GET') {
-    if (dbState.isConnected && dbState.db) {
+    if (db) {
       try {
-        const dbTickets = await dbState.db
+        const dbTickets = await db
           .collection<MaintenanceTicket>('tickets')
           .find({}, { projection: { _id: 0 } })
           .sort({ createdAt: -1 })
           .toArray();
-        return res.status(200).json(dbTickets);
+        if (dbTickets.length > 0) {
+          return res.status(200).json(dbTickets);
+        }
       } catch (err) {
         console.warn('MongoDB tickets error:', err);
       }
@@ -46,9 +47,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     inMemoryStore.tickets.unshift(newTicket);
 
-    if (dbState.isConnected && dbState.db) {
+    if (db) {
       try {
-        await dbState.db.collection('tickets').insertOne({ ...newTicket } as any);
+        await db.collection('tickets').insertOne({ ...newTicket } as any);
       } catch (err) {
         console.warn('MongoDB insert ticket error:', err);
       }

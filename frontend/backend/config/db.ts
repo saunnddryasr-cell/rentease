@@ -40,7 +40,7 @@ export function cleanMongoUri(raw?: string): string {
   if (!raw) return defaultUri;
   let cleaned = raw.trim();
   cleaned = cleaned.replace(/^MONGODB_URI\s*=\s*/i, '');
-  cleaned = cleaned.replace(/^["']|["']$/g, '');
+  cleaned = cleaned.replace(/^["'\\]+|["'\\]+$/g, '').replace(/\\"/g, '');
   cleaned = cleaned.replace(/<YOUR_PASSWORD>|<db_password>/g, 'sand11');
   if (!cleaned.startsWith('mongodb://') && !cleaned.startsWith('mongodb+srv://')) {
     return defaultUri;

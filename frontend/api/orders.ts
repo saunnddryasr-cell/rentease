@@ -1,27 +1,28 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { connectToDatabase, dbState, inMemoryStore } from '../backend/config/db.ts';
-import type { RentalOrder } from '../backend/types/index.ts';
+import { getDb, inMemoryStore, type RentalOrder } from './_db.ts';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  await connectToDatabase();
+  const db = await getDb();
 
   if (req.method === 'GET') {
-    if (dbState.isConnected && dbState.db) {
+    if (db) {
       try {
-        const dbOrders = await dbState.db
+        const dbOrders = await db
           .collection<RentalOrder>('orders')
           .find({}, { projection: { _id: 0 } })
           .sort({ createdAt: -1 })
           .toArray();
-        return res.status(200).json(dbOrders);
+        if (dbOrders.length > 0) {
+          return res.status(200).json(dbOrders);
+        }
       } catch (err) {
         console.warn('MongoDB orders error:', err);
       }
@@ -36,9 +37,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     inMemoryStore.orders.unshift(newOrder);
 
-    if (dbState.isConnected && dbState.db) {
+    if (db) {
       try {
-        await dbState.db.collection('orders').insertOne({ ...newOrder } as any);
+        await db.collection('orders').insertOne({ ...newOrder } as any);
       } catch (err) {
         console.warn('MongoDB insert order error:', err);
       }
