@@ -94,8 +94,9 @@ export async function connectToDatabase(): Promise<DatabaseState> {
   try {
     console.log('[Backend DB] Connecting to MongoDB Atlas cluster...');
     const client = new MongoClient(uri, {
-      connectTimeoutMS: 5000,
-      serverSelectionTimeoutMS: 5000
+      connectTimeoutMS: 4000,
+      serverSelectionTimeoutMS: 4000,
+      maxPoolSize: 10
     });
 
     await client.connect();
