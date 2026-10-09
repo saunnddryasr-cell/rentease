@@ -6,24 +6,48 @@
       "destination": "/api/health"
     },
     {
+      "source": "/api/products",
+      "destination": "/api/products"
+    },
+    {
       "source": "/api/products/:path*",
       "destination": "/api/products"
+    },
+    {
+      "source": "/api/orders",
+      "destination": "/api/orders"
     },
     {
       "source": "/api/orders/:path*",
       "destination": "/api/orders"
     },
     {
+      "source": "/api/tickets",
+      "destination": "/api/tickets"
+    },
+    {
       "source": "/api/tickets/:path*",
       "destination": "/api/tickets"
+    },
+    {
+      "source": "/api/claims",
+      "destination": "/api/claims"
     },
     {
       "source": "/api/claims/:path*",
       "destination": "/api/claims"
     },
     {
+      "source": "/api/cities",
+      "destination": "/api/cities"
+    },
+    {
       "source": "/api/cities/:path*",
       "destination": "/api/cities"
+    },
+    {
+      "source": "/api/analytics",
+      "destination": "/api/analytics"
     },
     {
       "source": "/api/analytics/:path*",
@@ -34,32 +58,60 @@
       "destination": "/api/health"
     },
     {
+      "source": "/products",
+      "destination": "/api/products"
+    },
+    {
       "source": "/products/:path*",
       "destination": "/api/products"
+    },
+    {
+      "source": "/orders",
+      "destination": "/api/orders"
     },
     {
       "source": "/orders/:path*",
       "destination": "/api/orders"
     },
     {
+      "source": "/tickets",
+      "destination": "/api/tickets"
+    },
+    {
       "source": "/tickets/:path*",
       "destination": "/api/tickets"
+    },
+    {
+      "source": "/claims",
+      "destination": "/api/claims"
     },
     {
       "source": "/claims/:path*",
       "destination": "/api/claims"
     },
     {
+      "source": "/cities",
+      "destination": "/api/cities"
+    },
+    {
       "source": "/cities/:path*",
       "destination": "/api/cities"
+    },
+    {
+      "source": "/analytics",
+      "destination": "/api/analytics"
     },
     {
       "source": "/analytics/:path*",
       "destination": "/api/analytics"
     },
     {
+      "source": "/api/(.*)",
+      "destination": "/api/index"
+    },
+    {
       "source": "/(.*)",
-      "destination": "/api/health"
+      "destination": "/api/index"
     }
   ]
 }

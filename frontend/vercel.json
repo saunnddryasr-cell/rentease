@@ -6,24 +6,48 @@
       "destination": "/api/health"
     },
     {
+      "source": "/api/products",
+      "destination": "/api/products"
+    },
+    {
       "source": "/api/products/:path*",
       "destination": "/api/products"
+    },
+    {
+      "source": "/api/orders",
+      "destination": "/api/orders"
     },
     {
       "source": "/api/orders/:path*",
       "destination": "/api/orders"
     },
     {
+      "source": "/api/tickets",
+      "destination": "/api/tickets"
+    },
+    {
       "source": "/api/tickets/:path*",
       "destination": "/api/tickets"
+    },
+    {
+      "source": "/api/claims",
+      "destination": "/api/claims"
     },
     {
       "source": "/api/claims/:path*",
       "destination": "/api/claims"
     },
     {
+      "source": "/api/cities",
+      "destination": "/api/cities"
+    },
+    {
       "source": "/api/cities/:path*",
       "destination": "/api/cities"
+    },
+    {
+      "source": "/api/analytics",
+      "destination": "/api/analytics"
     },
     {
       "source": "/api/analytics/:path*",
