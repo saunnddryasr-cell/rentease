@@ -38,7 +38,7 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
           ? 'Connected to MongoDB Atlas (cluster0.kk44seh.mongodb.net / database: rentease)'
           : 'Running in resilient cached mode'
       },
-      externalBackend: 'https://frontend-virid-iota-76.vercel.app',
+      externalBackend: 'https://rentease-backend-indol.vercel.app',
       frontendUrl: 'https://frontend-virid-iota-76.vercel.app',
       timestamp: new Date().toISOString(),
       activeRentals: orderCount,

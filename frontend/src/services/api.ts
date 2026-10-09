@@ -45,6 +45,11 @@ export function getApiBase(): string {
   if (envUrl && envUrl.trim()) {
     return envUrl.trim().replace(/\/+$/, '');
   }
+  // When running on frontend-virid-iota-76.vercel.app without an explicit VITE_API_URL,
+  // seamlessly connect to the live backend instance
+  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+    return 'https://rentease-backend-indol.vercel.app/api';
+  }
   return '/api';
 }
 

@@ -104,18 +104,26 @@ export async function createApp(): Promise<Express> {
 // Cached instance for serverless environments (e.g. Vercel)
 let cachedAppInstance: any = null;
 
-export default async function handler(req: any, res: any) {
-  try {
-    if (!cachedAppInstance) {
-      cachedAppInstance = await createApp();
+export default function handler(req: any, res: any) {
+  return new Promise(async (resolve, reject) => {
+    res.on('finish', resolve);
+    res.on('close', resolve);
+    res.on('error', reject);
+    try {
+      if (!cachedAppInstance) {
+        cachedAppInstance = await createApp();
+      }
+      cachedAppInstance(req, res);
+    } catch (err: any) {
+      console.error('[Serverless Handler Error]:', err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          error: 'Internal Server Error',
+          message: err?.message || String(err),
+          timestamp: new Date().toISOString()
+        });
+      }
+      resolve(null);
     }
-    return cachedAppInstance(req, res);
-  } catch (err: any) {
-    console.error('[Serverless Handler Error]:', err);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: err?.message || String(err),
-      timestamp: new Date().toISOString()
-    });
-  }
+  });
 }

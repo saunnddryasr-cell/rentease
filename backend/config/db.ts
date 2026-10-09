@@ -57,7 +57,7 @@ export function cleanMongoUri(raw?: string): string {
 }
 
 export function cleanBackendUrl(raw?: string): string {
-  const fallback = 'https://frontend-virid-iota-76.vercel.app';
+  const fallback = 'https://rentease-backend-indol.vercel.app';
   if (!raw) return fallback;
   let cleaned = raw.trim().replace(/^BACKEND_API_URL\s*=\s*/i, '').replace(/^["']|["']$/g, '');
   if (!cleaned.startsWith('http://') && !cleaned.startsWith('https://')) return fallback;
