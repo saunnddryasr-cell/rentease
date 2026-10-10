@@ -31,8 +31,22 @@ export async function createApp(): Promise<Express> {
 
   // URL normalizer for Vercel serverless rewrites
   app.use((req, _res, next) => {
-    if (req.url && req.url.startsWith('/api/index')) {
-      req.url = req.url.replace('/api/index', '/api');
+    const matched =
+      (req.headers['x-matched-path'] as string) ||
+      (req.headers['x-invoke-path'] as string) ||
+      (req.headers['x-now-route-matches'] as string) ||
+      '';
+
+    if (matched && (matched.startsWith('/api/') || matched.startsWith('/products') || matched.startsWith('/orders') || matched.startsWith('/tickets') || matched.startsWith('/claims') || matched.startsWith('/cities') || matched.startsWith('/analytics') || matched.startsWith('/health'))) {
+      req.url = matched.startsWith('/api') ? matched : `/api${matched}`;
+    } else if (req.url && req.url.startsWith('/api/index')) {
+      const urlObj = new URL(req.url, 'http://localhost');
+      const pathParam = urlObj.searchParams.get('path');
+      if (pathParam) {
+        req.url = pathParam.startsWith('/') ? pathParam : `/api/${pathParam}`;
+      } else {
+        req.url = req.url.replace('/api/index', '/api');
+      }
     }
     next();
   });
@@ -79,6 +93,23 @@ export async function createApp(): Promise<Express> {
   };
   app.get('/api', apiInfo);
   app.get('/api/index', apiInfo);
+
+  // Resilient route fallback: If route path was mangled by serverless rewrites (e.g. /api/index?path=)
+  app.use((req: Request, res: Response, next: express.NextFunction) => {
+    if (req.method === 'POST' && req.body && (req.body.title || req.body.category || req.body.monthlyRent3m)) {
+      req.url = '/products';
+      return productRoutes(req, res, next);
+    }
+    if (req.method === 'POST' && req.body && (req.body.customerId || req.body.totalMonthlyRent || req.body.items)) {
+      req.url = '/orders';
+      return orderRoutes(req, res, next);
+    }
+    if (req.method === 'POST' && req.body && (req.body.issueCategory || req.body.issueDescription)) {
+      req.url = '/tickets';
+      return ticketRoutes(req, res, next);
+    }
+    next();
+  });
 
   // Fallback JSON 404 for unmatched API routes
   app.use('/api', (req: Request, res: Response) => {

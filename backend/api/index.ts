@@ -8,23 +8,29 @@ import citiesHandler from './cities.ts';
 import analyticsHandler from './analytics.ts';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const url = req.url || '';
-  if (url.includes('/products')) {
+  const matched =
+    (req.headers['x-matched-path'] as string) ||
+    (req.headers['x-invoke-path'] as string) ||
+    (req.headers['x-now-route-matches'] as string) ||
+    req.url ||
+    '';
+
+  if (matched.includes('/products')) {
     return productsHandler(req, res);
   }
-  if (url.includes('/orders')) {
+  if (matched.includes('/orders')) {
     return ordersHandler(req, res);
   }
-  if (url.includes('/tickets')) {
+  if (matched.includes('/tickets')) {
     return ticketsHandler(req, res);
   }
-  if (url.includes('/claims')) {
+  if (matched.includes('/claims')) {
     return claimsHandler(req, res);
   }
-  if (url.includes('/cities')) {
+  if (matched.includes('/cities')) {
     return citiesHandler(req, res);
   }
-  if (url.includes('/analytics')) {
+  if (matched.includes('/analytics')) {
     return analyticsHandler(req, res);
   }
   return healthHandler(req, res);
