@@ -18,7 +18,7 @@ router.get('/claims', async (_req: Request, res: Response) => {
       console.warn('MongoDB claims error:', e);
     }
   }
-  res.json(inMemoryStore.claims);
+  return res.json([]);
 });
 
 // PUT Resolve Claim & Refund

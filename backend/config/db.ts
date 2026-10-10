@@ -105,38 +105,7 @@ export async function connectToDatabase(): Promise<DatabaseState> {
     dbState.db = db;
     dbState.isConnected = true;
     dbState.statusMessage = 'Connected to MongoDB Atlas (cluster0.kk44seh.mongodb.net / database: rentease)';
-    console.log('[Backend DB] Connected to MongoDB Atlas database: rentease');
-
-    // Auto-seed collections if empty
-    const productCount = await db.collection('products').countDocuments();
-    if (productCount === 0) {
-      console.log('[Backend DB] Seeding initial products collection...');
-      await db.collection('products').insertMany(INITIAL_PRODUCTS as any);
-    }
-
-    const orderCount = await db.collection('orders').countDocuments();
-    if (orderCount === 0) {
-      console.log('[Backend DB] Seeding initial orders collection...');
-      await db.collection('orders').insertMany(INITIAL_ORDERS as any);
-    }
-
-    const ticketCount = await db.collection('tickets').countDocuments();
-    if (ticketCount === 0) {
-      console.log('[Backend DB] Seeding initial maintenance tickets collection...');
-      await db.collection('tickets').insertMany(INITIAL_MAINTENANCE_TICKETS as any);
-    }
-
-    const claimCount = await db.collection('claims').countDocuments();
-    if (claimCount === 0) {
-      console.log('[Backend DB] Seeding initial return claims collection...');
-      await db.collection('claims').insertMany(INITIAL_CLAIMS as any);
-    }
-
-    const cityCount = await db.collection('cities').countDocuments();
-    if (cityCount === 0) {
-      console.log('[Backend DB] Seeding initial service cities collection...');
-      await db.collection('cities').insertMany(SERVICE_CITIES as any);
-    }
+    console.log('[Backend DB] Connected to MongoDB Atlas database: rentease (100% dynamic mode)');
   } catch (err: any) {
     console.warn('[Backend DB] MongoDB Atlas connection notice:', err?.message || err);
     dbState.isConnected = false;

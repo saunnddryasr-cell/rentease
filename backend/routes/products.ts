@@ -26,31 +26,14 @@ router.get('/products', async (req: Request, res: Response) => {
         .collection<Product>('products')
         .find(query, { projection: { _id: 0 } })
         .toArray();
-      return res.json(dbProducts);
+      return res.json(dbProducts || []);
     } catch (err) {
-      console.warn('MongoDB query failed, falling back to memory products:', err);
+      console.warn('MongoDB query notice:', err);
     }
   }
 
-  // Fallback
-  let result = [...inMemoryStore.products];
-  if (category && category !== 'all') {
-    result = result.filter((p) => p.category === category);
-  }
-  if (subCategory && subCategory !== 'all') {
-    result = result.filter((p) => p.subCategory === subCategory);
-  }
-  if (search && typeof search === 'string') {
-    const q = search.toLowerCase();
-    result = result.filter(
-      (p) =>
-        p.title.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q) ||
-        p.subCategory.toLowerCase().includes(q)
-    );
-  }
-  res.json(result);
+  // If database is empty or disconnected, return empty array (no mock data)
+  return res.json([]);
 });
 
 // GET single product by ID

@@ -61,32 +61,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .collection<Product>('products')
           .find(query, { projection: { _id: 0 } })
           .toArray();
-        if (dbProducts.length > 0) {
-          return res.status(200).json(dbProducts);
-        }
+        return res.status(200).json(dbProducts || []);
       } catch (err) {
         console.warn('MongoDB query notice:', err);
       }
     }
 
-    let result = [...inMemoryStore.products];
-    if (category && category !== 'all') {
-      result = result.filter((p) => p.category === category);
-    }
-    if (subCategory && subCategory !== 'all') {
-      result = result.filter((p) => p.subCategory === subCategory);
-    }
-    if (search && typeof search === 'string') {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q) ||
-          p.subCategory.toLowerCase().includes(q)
-      );
-    }
-    return res.status(200).json(result);
+    // Direct database mode: return empty array if no data exists in MongoDB Atlas
+    return res.status(200).json([]);
   }
 
   // 3. POST Create Product

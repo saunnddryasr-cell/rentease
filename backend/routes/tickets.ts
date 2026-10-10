@@ -19,7 +19,7 @@ router.get('/tickets', async (_req: Request, res: Response) => {
       console.warn('MongoDB tickets error:', e);
     }
   }
-  res.json(inMemoryStore.tickets);
+  return res.json([]);
 });
 
 // POST Create Ticket

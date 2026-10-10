@@ -19,7 +19,7 @@ router.get('/orders', async (_req: Request, res: Response) => {
       console.warn('MongoDB orders error:', e);
     }
   }
-  res.json(inMemoryStore.orders);
+  return res.json([]);
 });
 
 // POST Create Order (Checkout)
