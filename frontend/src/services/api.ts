@@ -113,7 +113,7 @@ export const api = {
     if (params?.subCategory) url.searchParams.set('subCategory', params.subCategory);
     if (params?.search) url.searchParams.set('search', params.search);
 
-    const res = await fetch(url.toString());
+    const res = await fetch(url.toString(), { cache: 'no-store' });
     return await parseJsonResponse<Product[]>(res, 'Failed to fetch products from backend');
   },
 
@@ -133,7 +133,7 @@ export const api = {
 
   // Orders
   async getOrders(): Promise<RentalOrder[]> {
-    const res = await fetch(getEndpointUrl('/orders'));
+    const res = await fetch(getEndpointUrl('/orders'), { cache: 'no-store' });
     return await parseJsonResponse<RentalOrder[]>(res, 'Failed to fetch orders');
   },
 
@@ -194,7 +194,7 @@ export const api = {
 
   // Maintenance Tickets
   async getTickets(): Promise<MaintenanceTicket[]> {
-    const res = await fetch(getEndpointUrl('/tickets'));
+    const res = await fetch(getEndpointUrl('/tickets'), { cache: 'no-store' });
     return await parseJsonResponse<MaintenanceTicket[]>(res, 'Failed to fetch tickets');
   },
 
@@ -223,7 +223,7 @@ export const api = {
 
   // Claims
   async getClaims(): Promise<ReturnDamageClaim[]> {
-    const res = await fetch(getEndpointUrl('/claims'));
+    const res = await fetch(getEndpointUrl('/claims'), { cache: 'no-store' });
     return await parseJsonResponse<ReturnDamageClaim[]>(res, 'Failed to fetch claims');
   },
 
@@ -243,7 +243,7 @@ export const api = {
 
   // Cities
   async getCities(): Promise<ServiceCity[]> {
-    const res = await fetch(getEndpointUrl('/cities'));
+    const res = await fetch(getEndpointUrl('/cities'), { cache: 'no-store' });
     return await parseJsonResponse<ServiceCity[]>(res, 'Failed to fetch service cities');
   },
 
@@ -256,7 +256,7 @@ export const api = {
 
   // KPIs
   async getKpis(): Promise<KpiData> {
-    const res = await fetch(getEndpointUrl('/analytics/kpis'));
+    const res = await fetch(getEndpointUrl('/analytics/kpis'), { cache: 'no-store' });
     return await parseJsonResponse<KpiData>(res, 'Failed to fetch analytics KPIs');
   }
 };

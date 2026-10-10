@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, ShieldCheck, MapPin, User, ChevronDown } from 'lucide-react';
+import { ShoppingBag, ShieldCheck, MapPin, User, ChevronDown, RefreshCw, Database } from 'lucide-react';
 import { ServiceCity } from '../types';
 
 interface NavbarProps {
@@ -14,6 +14,7 @@ interface NavbarProps {
   setSelectedCity: (city: string) => void;
   apiSynced?: boolean;
   isSyncing?: boolean;
+  onRefreshDb?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -27,7 +28,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   selectedCity,
   setSelectedCity,
   apiSynced = true,
-  isSyncing = false
+  isSyncing = false,
+  onRefreshDb
 }) => {
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
@@ -136,16 +138,27 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Zone 3: 1-2 primary actions */}
         <div className="flex items-center gap-3 shrink-0">
           
-          {/* API Sync indicator */}
-          <div className="hidden lg:flex items-center gap-1.5 text-xs text-slate-500 font-mono pr-1">
+          {/* Live MongoDB Atlas Database Indicator */}
+          <div className="hidden md:flex items-center gap-1.5 text-xs text-slate-600 font-mono pr-1 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md">
             <span
               className={`w-2 h-2 rounded-full ${
                 apiSynced ? 'bg-emerald-500' : 'bg-amber-500'
               } ${isSyncing ? 'animate-ping' : ''}`}
             />
-            <span className="text-[11px] text-slate-600">
-              {isSyncing ? 'API Syncing...' : 'REST API Synced'}
+            <Database className="w-3 h-3 text-emerald-600" />
+            <span className="text-[11px] font-semibold text-slate-700">
+              {isSyncing ? 'Syncing DB...' : 'Atlas DB Live'}
             </span>
+            {onRefreshDb && (
+              <button
+                onClick={onRefreshDb}
+                disabled={isSyncing}
+                title="Refresh latest data directly from MongoDB Atlas"
+                className="ml-1 text-slate-400 hover:text-slate-700 disabled:opacity-50 transition-colors p-0.5 rounded hover:bg-slate-200"
+              >
+                <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
+              </button>
+            )}
           </div>
 
           {/* Role switcher */}

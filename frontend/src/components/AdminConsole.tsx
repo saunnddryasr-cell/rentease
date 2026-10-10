@@ -49,6 +49,7 @@ interface AdminConsoleProps {
     notes: string
   ) => void;
   onToggleCityOperational: (cityId: string) => void;
+  onRefreshDb?: () => void;
 }
 
 export const AdminConsole: React.FC<AdminConsoleProps> = ({
@@ -61,7 +62,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   onUpdateOrderStatus,
   onUpdateTicketStatus,
   onResolveClaim,
-  onToggleCityOperational
+  onToggleCityOperational,
+  onRefreshDb
 }) => {
   const [activeTab, setActiveTab] = useState<
     'inventory' | 'logistics' | 'maintenance' | 'claims' | 'service_areas' | 'database'
@@ -834,9 +836,24 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
 
             {/* Collection Document Counts */}
             <div>
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider font-mono mb-3">
-                Synchronized Collections &amp; Document Counts
-              </h4>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider font-mono">
+                  Synchronized Collections &amp; Document Counts
+                </h4>
+                {onRefreshDb && (
+                  <button
+                    onClick={() => {
+                      onRefreshDb();
+                      fetchDbHealth();
+                    }}
+                    disabled={isTestingDb}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-xs"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${isTestingDb ? 'animate-spin' : ''}`} />
+                    <span>Re-sync All Collections</span>
+                  </button>
+                )}
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <div className="p-3 bg-white border border-slate-200 rounded-xl text-center">
                   <div className="text-[11px] text-slate-500">Products</div>

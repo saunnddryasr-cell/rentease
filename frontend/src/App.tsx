@@ -44,31 +44,13 @@ export default function App() {
   const [apiSynced, setApiSynced] = useState<boolean>(true);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
-  // Core Data States (hydrated with localStorage or initial seeds)
-  const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('rentease_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
-  });
-
-  const [orders, setOrders] = useState<RentalOrder[]>(() => {
-    const saved = localStorage.getItem('rentease_orders');
-    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
-  });
-
-  const [tickets, setTickets] = useState<MaintenanceTicket[]>(() => {
-    const saved = localStorage.getItem('rentease_tickets');
-    return saved ? JSON.parse(saved) : INITIAL_MAINTENANCE_TICKETS;
-  });
-
-  const [claims, setClaims] = useState<ReturnDamageClaim[]>(() => {
-    const saved = localStorage.getItem('rentease_claims');
-    return saved ? JSON.parse(saved) : INITIAL_CLAIMS;
-  });
-
-  const [cities, setCities] = useState<ServiceCity[]>(() => {
-    const saved = localStorage.getItem('rentease_cities');
-    return saved ? JSON.parse(saved) : SERVICE_CITIES;
-  });
+  // Core Data States (dynamically populated live from MongoDB Atlas backend)
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<RentalOrder[]>([]);
+  const [tickets, setTickets] = useState<MaintenanceTicket[]>([]);
+  const [claims, setClaims] = useState<ReturnDamageClaim[]>([]);
+  const [cities, setCities] = useState<ServiceCity[]>([]);
+  const [isLoadingDb, setIsLoadingDb] = useState<boolean>(true);
 
   // Shopping Cart State
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -86,35 +68,39 @@ export default function App() {
   const [subCategoryFilter, setSubCategoryFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'recommended' | 'price_low' | 'price_high'>('recommended');
 
-  // Synchronize state with Backend REST API on mount
+  // Synchronize state dynamically with Backend Database
   const syncWithBackend = useCallback(async () => {
     setIsSyncing(true);
     try {
-      const health = await api.checkHealth();
-      if (health) {
-        setApiSynced(true);
-        const [backendProducts, backendOrders, backendTickets, backendClaims, backendCities] =
-          await Promise.all([
-            api.getProducts(),
-            api.getOrders(),
-            api.getTickets(),
-            api.getClaims(),
-            api.getCities()
-          ]);
+      const healthPromise = api.checkHealth().catch(() => null);
+      const [backendProducts, backendOrders, backendTickets, backendClaims, backendCities, health] =
+        await Promise.all([
+          api.getProducts().catch(() => []),
+          api.getOrders().catch(() => []),
+          api.getTickets().catch(() => []),
+          api.getClaims().catch(() => []),
+          api.getCities().catch(() => []),
+          healthPromise
+        ]);
 
-        if (backendProducts?.length) setProducts(backendProducts);
-        if (backendOrders?.length) setOrders(backendOrders);
-        if (backendTickets?.length) setTickets(backendTickets);
-        if (backendClaims?.length) setClaims(backendClaims);
-        if (backendCities?.length) setCities(backendCities);
-      } else {
-        setApiSynced(false);
-      }
+      setProducts(backendProducts.length ? backendProducts : INITIAL_PRODUCTS);
+      setOrders(backendOrders.length ? backendOrders : INITIAL_ORDERS);
+      setTickets(backendTickets.length ? backendTickets : INITIAL_MAINTENANCE_TICKETS);
+      setClaims(backendClaims.length ? backendClaims : INITIAL_CLAIMS);
+      setCities(backendCities.length ? backendCities : SERVICE_CITIES);
+
+      setApiSynced(Boolean(health));
     } catch (e) {
       console.warn('Backend sync encountered an issue, running with local cache fallback:', e);
       setApiSynced(false);
+      setProducts((prev) => (prev.length ? prev : INITIAL_PRODUCTS));
+      setOrders((prev) => (prev.length ? prev : INITIAL_ORDERS));
+      setTickets((prev) => (prev.length ? prev : INITIAL_MAINTENANCE_TICKETS));
+      setClaims((prev) => (prev.length ? prev : INITIAL_CLAIMS));
+      setCities((prev) => (prev.length ? prev : SERVICE_CITIES));
     } finally {
       setIsSyncing(false);
+      setIsLoadingDb(false);
     }
   }, []);
 
@@ -539,6 +525,7 @@ export default function App() {
         setSelectedCity={setSelectedCity}
         apiSynced={apiSynced}
         isSyncing={isSyncing}
+        onRefreshDb={syncWithBackend}
       />
 
       {/* Main View Router */}
@@ -714,7 +701,21 @@ export default function App() {
               )}
 
               {/* Product Grid */}
-              {sortedProducts.length === 0 ? (
+              {isLoadingDb ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                  {[1, 2, 3, 4, 5, 6].map((idx) => (
+                    <div key={idx} className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs animate-pulse p-4 space-y-3">
+                      <div className="w-full h-56 bg-slate-200 rounded-xl" />
+                      <div className="h-4 bg-slate-200 rounded-md w-3/4" />
+                      <div className="h-3 bg-slate-100 rounded-md w-1/2" />
+                      <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                        <div className="h-5 bg-slate-200 rounded-md w-24" />
+                        <div className="h-8 bg-slate-200 rounded-lg w-24" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : sortedProducts.length === 0 ? (
                 <div className="py-16 text-center bg-white rounded-2xl border border-slate-200 p-8 space-y-3">
                   <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
                     <Search className="w-6 h-6" />
@@ -784,6 +785,7 @@ export default function App() {
             onUpdateTicketStatus={handleUpdateTicketStatus}
             onResolveClaim={handleResolveClaim}
             onToggleCityOperational={handleToggleCityOperational}
+            onRefreshDb={syncWithBackend}
           />
         )}
       </main>
