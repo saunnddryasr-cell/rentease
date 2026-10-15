@@ -22,7 +22,7 @@ export const Footer: React.FC<FooterProps> = ({ cities, onOpenPrd, onNavigateTab
               The flexible monthly furniture &amp; appliance rental platform for students and working professionals. Zero upfront capital, 100% refundable deposits, and free doorstep servicing.
             </p>
             <div className="text-[11px] text-slate-500 font-mono pt-2">
-              Operational in {cities.filter((c) => c.isAvailable).length} major urban hubs across India.
+              Operational in {(Array.isArray(cities) ? cities : []).filter((c) => c && c.isAvailable).length} major urban hubs across India.
             </div>
           </div>
 

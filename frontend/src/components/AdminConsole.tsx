@@ -69,6 +69,12 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
     'inventory' | 'logistics' | 'maintenance' | 'claims' | 'service_areas' | 'database'
   >('inventory');
 
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  const safeTickets = Array.isArray(tickets) ? tickets : [];
+  const safeClaims = Array.isArray(claims) ? claims : [];
+  const safeCities = Array.isArray(cities) ? cities : [];
+
   const [dbStatus, setDbStatus] = useState<any>(null);
   const [isTestingDb, setIsTestingDb] = useState(false);
   const [customApiUrl, setCustomApiUrl] = useState(() => api.getApiBase());
@@ -120,10 +126,10 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   const [ticketTargetStatus, setTicketTargetStatus] = useState<MaintenanceTicket['status']>('in_progress');
 
   // KPI Calculations
-  const activeOrders = orders.filter((o) => o.status === 'active' || o.status === 'scheduled');
-  const mrr = activeOrders.reduce((sum, o) => sum + o.totalMonthlyRent, 0);
-  const totalStock = products.reduce((sum, p) => sum + p.stockCount, 0);
-  const totalRented = products.reduce((sum, p) => sum + p.rentedCount, 0);
+  const activeOrders = safeOrders.filter((o) => o && (o.status === 'active' || o.status === 'scheduled'));
+  const mrr = activeOrders.reduce((sum, o) => sum + (o.totalMonthlyRent || 0), 0);
+  const totalStock = safeProducts.reduce((sum, p) => sum + (p.stockCount || 0), 0);
+  const totalRented = safeProducts.reduce((sum, p) => sum + (p.rentedCount || 0), 0);
   const utilizationRate = Math.round((totalRented / Math.max(totalStock, 1)) * 100);
 
   const handleCreateProduct = (e: React.FormEvent) => {
@@ -215,7 +221,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
             <div className="text-lg font-bold font-mono text-white tabular-nums mt-0.5">
               {activeOrders.length}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">Across {cities.filter((c) => c.isAvailable).length} Cities</div>
+            <div className="text-[10px] text-slate-400 mt-0.5">Across {safeCities.filter((c) => c && c.isAvailable).length} Cities</div>
           </div>
 
           <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700/80">

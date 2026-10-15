@@ -108,13 +108,25 @@ export const api = {
 
   // Products
   async getProducts(params?: { category?: string; subCategory?: string; search?: string }): Promise<Product[]> {
-    const url = new URL(getEndpointUrl('/products'));
-    if (params?.category) url.searchParams.set('category', params.category);
-    if (params?.subCategory) url.searchParams.set('subCategory', params.subCategory);
-    if (params?.search) url.searchParams.set('search', params.search);
+    try {
+      const url = new URL(getEndpointUrl('/products'));
+      if (params?.category) url.searchParams.set('category', params.category);
+      if (params?.subCategory) url.searchParams.set('subCategory', params.subCategory);
+      if (params?.search) url.searchParams.set('search', params.search);
 
-    const res = await fetch(url.toString(), { cache: 'no-store' });
-    return await parseJsonResponse<Product[]>(res, 'Failed to fetch products from backend');
+      const res = await fetch(url.toString(), { cache: 'no-store' });
+      if (!res.ok) {
+        console.warn(`[API] getProducts received HTTP ${res.status}`);
+        return [];
+      }
+      const data = await res.json().catch(() => []);
+      if (Array.isArray(data)) return data;
+      if (data && Array.isArray(data.products)) return data.products;
+      return [];
+    } catch (err) {
+      console.warn('[API] getProducts error:', err);
+      return [];
+    }
   },
 
   async createProduct(product: Partial<Product>): Promise<Product> {
@@ -133,8 +145,14 @@ export const api = {
 
   // Orders
   async getOrders(): Promise<RentalOrder[]> {
-    const res = await fetch(getEndpointUrl('/orders'), { cache: 'no-store' });
-    return await parseJsonResponse<RentalOrder[]>(res, 'Failed to fetch orders');
+    try {
+      const res = await fetch(getEndpointUrl('/orders'), { cache: 'no-store' });
+      if (!res.ok) return [];
+      const data = await res.json().catch(() => []);
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
   },
 
   async createOrder(order: RentalOrder): Promise<RentalOrder> {
@@ -194,8 +212,14 @@ export const api = {
 
   // Maintenance Tickets
   async getTickets(): Promise<MaintenanceTicket[]> {
-    const res = await fetch(getEndpointUrl('/tickets'), { cache: 'no-store' });
-    return await parseJsonResponse<MaintenanceTicket[]>(res, 'Failed to fetch tickets');
+    try {
+      const res = await fetch(getEndpointUrl('/tickets'), { cache: 'no-store' });
+      if (!res.ok) return [];
+      const data = await res.json().catch(() => []);
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
   },
 
   async createTicket(ticket: Partial<MaintenanceTicket>): Promise<MaintenanceTicket> {
@@ -223,8 +247,14 @@ export const api = {
 
   // Claims
   async getClaims(): Promise<ReturnDamageClaim[]> {
-    const res = await fetch(getEndpointUrl('/claims'), { cache: 'no-store' });
-    return await parseJsonResponse<ReturnDamageClaim[]>(res, 'Failed to fetch claims');
+    try {
+      const res = await fetch(getEndpointUrl('/claims'), { cache: 'no-store' });
+      if (!res.ok) return [];
+      const data = await res.json().catch(() => []);
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
   },
 
   async resolveClaim(
@@ -243,8 +273,14 @@ export const api = {
 
   // Cities
   async getCities(): Promise<ServiceCity[]> {
-    const res = await fetch(getEndpointUrl('/cities'), { cache: 'no-store' });
-    return await parseJsonResponse<ServiceCity[]>(res, 'Failed to fetch service cities');
+    try {
+      const res = await fetch(getEndpointUrl('/cities'), { cache: 'no-store' });
+      if (!res.ok) return [];
+      const data = await res.json().catch(() => []);
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
   },
 
   async toggleCity(cityId: string): Promise<ServiceCity> {

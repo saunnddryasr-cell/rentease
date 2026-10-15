@@ -52,8 +52,9 @@ export const UserRentalsPortal: React.FC<UserRentalsPortalProps> = ({
   const [returnDate, setReturnDate] = useState('');
   const [returnReason, setReturnReason] = useState('Tenure completed / Relocating out of city');
 
-  const activeOrders = orders.filter((o) => o.status === 'active' || o.status === 'scheduled');
-  const pastOrders = orders.filter((o) => o.status === 'returned' || o.status === 'return_requested');
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  const activeOrders = safeOrders.filter((o) => o && (o.status === 'active' || o.status === 'scheduled'));
+  const pastOrders = safeOrders.filter((o) => o && (o.status === 'returned' || o.status === 'return_requested'));
 
   const totalMonthlyActive = activeOrders.reduce((sum, o) => sum + o.totalMonthlyRent, 0);
   const totalDepositHeld = activeOrders.reduce((sum, o) => sum + o.totalDeposit, 0);

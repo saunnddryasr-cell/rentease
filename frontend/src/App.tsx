@@ -44,18 +44,74 @@ export default function App() {
   const [apiSynced, setApiSynced] = useState<boolean>(true);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
-  // Core Data States (dynamically populated live from MongoDB Atlas backend)
-  const [products, setProducts] = useState<Product[]>([]);
-  const [orders, setOrders] = useState<RentalOrder[]>([]);
-  const [tickets, setTickets] = useState<MaintenanceTicket[]>([]);
-  const [claims, setClaims] = useState<ReturnDamageClaim[]>([]);
-  const [cities, setCities] = useState<ServiceCity[]>([]);
+  // Core Data States (dynamically populated live from MongoDB Atlas backend, guaranteed Array)
+  const [products, setProducts] = useState<Product[]>(() => {
+    try {
+      const saved = localStorage.getItem('rentease_products');
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [orders, setOrders] = useState<RentalOrder[]>(() => {
+    try {
+      const saved = localStorage.getItem('rentease_orders');
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [tickets, setTickets] = useState<MaintenanceTicket[]>(() => {
+    try {
+      const saved = localStorage.getItem('rentease_tickets');
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [claims, setClaims] = useState<ReturnDamageClaim[]>(() => {
+    try {
+      const saved = localStorage.getItem('rentease_claims');
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [cities, setCities] = useState<ServiceCity[]>(() => {
+    try {
+      const saved = localStorage.getItem('rentease_cities');
+      if (!saved) return SERVICE_CITIES;
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) && parsed.length ? parsed : SERVICE_CITIES;
+    } catch {
+      return SERVICE_CITIES;
+    }
+  });
+
   const [isLoadingDb, setIsLoadingDb] = useState<boolean>(true);
 
   // Shopping Cart State
   const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('rentease_cart');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('rentease_cart');
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
   });
 
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -83,21 +139,21 @@ export default function App() {
           healthPromise
         ]);
 
-      // 100% Dynamic from MongoDB Atlas: If database has no documents, set empty array
-      setProducts(backendProducts || []);
-      setOrders(backendOrders || []);
-      setTickets(backendTickets || []);
-      setClaims(backendClaims || []);
-      setCities(backendCities && backendCities.length ? backendCities : SERVICE_CITIES);
+      // 100% Dynamic from MongoDB Atlas: Safely validate Arrays before updating state
+      setProducts(Array.isArray(backendProducts) ? backendProducts : []);
+      setOrders(Array.isArray(backendOrders) ? backendOrders : []);
+      setTickets(Array.isArray(backendTickets) ? backendTickets : []);
+      setClaims(Array.isArray(backendClaims) ? backendClaims : []);
+      setCities(Array.isArray(backendCities) && backendCities.length ? backendCities : SERVICE_CITIES);
 
       setApiSynced(Boolean(health));
     } catch (e) {
       console.warn('Backend sync encountered an issue:', e);
       setApiSynced(false);
-      setProducts((prev) => prev || []);
-      setOrders((prev) => prev || []);
-      setTickets((prev) => prev || []);
-      setClaims((prev) => prev || []);
+      setProducts((prev) => (Array.isArray(prev) ? prev : []));
+      setOrders((prev) => (Array.isArray(prev) ? prev : []));
+      setTickets((prev) => (Array.isArray(prev) ? prev : []));
+      setClaims((prev) => (Array.isArray(prev) ? prev : []));
     } finally {
       setIsSyncing(false);
       setIsLoadingDb(false);
@@ -480,8 +536,10 @@ export default function App() {
     }
   };
 
-  // Filtering products
-  const filteredProducts = products.filter((p) => {
+  // Safe filtering products
+  const safeProducts = Array.isArray(products) ? products : [];
+  const filteredProducts = safeProducts.filter((p) => {
+    if (!p) return false;
     if (activeTab === 'bundles') {
       return p.category === 'bundles';
     }
@@ -489,10 +547,10 @@ export default function App() {
     const matchesSubCategory =
       subCategoryFilter === 'all' || p.subCategory === subCategoryFilter;
     const matchesSearch =
-      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.subCategory.toLowerCase().includes(searchQuery.toLowerCase());
+      (p.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.category || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.subCategory || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSubCategory && matchesSearch;
   });
 
@@ -609,7 +667,7 @@ export default function App() {
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      All Items ({products.length})
+                      All Items ({safeProducts.length})
                     </button>
                     <button
                       onClick={() => {
@@ -622,7 +680,7 @@ export default function App() {
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      Furniture ({products.filter((p) => p.category === 'furniture').length})
+                      Furniture ({safeProducts.filter((p) => p && p.category === 'furniture').length})
                     </button>
                     <button
                       onClick={() => {
@@ -635,7 +693,7 @@ export default function App() {
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      Appliances ({products.filter((p) => p.category === 'appliances').length})
+                      Appliances ({safeProducts.filter((p) => p && p.category === 'appliances').length})
                     </button>
                     <button
                       onClick={() => {
@@ -648,7 +706,7 @@ export default function App() {
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      Room Bundles ({products.filter((p) => p.category === 'bundles').length})
+                      Room Bundles ({safeProducts.filter((p) => p && p.category === 'bundles').length})
                     </button>
                   </div>
 
@@ -715,7 +773,7 @@ export default function App() {
                     </div>
                   ))}
                 </div>
-              ) : products.length === 0 ? (
+              ) : safeProducts.length === 0 ? (
                 <div className="py-20 text-center bg-white rounded-2xl border border-slate-200 p-8 space-y-4 max-w-lg mx-auto shadow-xs">
                   <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
                     <Database className="w-7 h-7 text-slate-400" />
