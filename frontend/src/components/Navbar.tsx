@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, ShieldCheck, MapPin, User, ChevronDown, RefreshCw, Database } from 'lucide-react';
+import { ShoppingBag, ShieldCheck, MapPin, User, ChevronDown, RefreshCw, Database, Download } from 'lucide-react';
 import { ServiceCity } from '../types';
 
 interface NavbarProps {
@@ -133,6 +133,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             PRD &amp; Specs
           </button>
+          <a
+            href="/RentEase_Platform_Report.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Download Comprehensive RentEase Platform Report (PDF)"
+            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 rounded-md transition-colors"
+          >
+            <Download className="w-3.5 h-3.5 text-amber-700" />
+            <span>PDF Report</span>
+          </a>
         </nav>
 
         {/* Zone 3: 1-2 primary actions */}

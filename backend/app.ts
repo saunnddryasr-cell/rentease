@@ -1,5 +1,7 @@
 import express from 'express';
 import type { Express, Request, Response, NextFunction } from 'express';
+import fs from 'fs';
+import path from 'path';
 import { connectToDatabase } from './config/db.ts';
 import healthRoutes from './routes/health.ts';
 import productRoutes from './routes/products.ts';
@@ -93,6 +95,22 @@ export async function createApp(): Promise<Express> {
   };
   app.get('/api', apiInfo);
   app.get('/api/index', apiInfo);
+
+  // Serve PDF report directly
+  app.get(['/api/report/pdf', '/report.pdf', '/RentEase_Platform_Report.pdf'], (_req: Request, res: Response) => {
+    const candidates = [
+      path.resolve('public/RentEase_Platform_Report.pdf'),
+      path.resolve('frontend/public/RentEase_Platform_Report.pdf')
+    ];
+    for (const p of candidates) {
+      if (fs.existsSync(p)) {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline; filename="RentEase_Platform_Report.pdf"');
+        return fs.createReadStream(p).pipe(res);
+      }
+    }
+    res.status(404).json({ error: 'Report PDF not found' });
+  });
 
   // Resilient route fallback: If route path was mangled by serverless rewrites (e.g. /api/index?path=)
   app.use((req: Request, res: Response, next: express.NextFunction) => {

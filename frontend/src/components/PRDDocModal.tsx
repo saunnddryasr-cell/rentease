@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, FileText, CheckCircle2, Copy, Check, Layers, BarChart3, Database } from 'lucide-react';
+import { X, FileText, CheckCircle2, Copy, Check, Layers, BarChart3, Database, Download } from 'lucide-react';
 
 interface PRDDocModalProps {
   isOpen: boolean;
@@ -44,6 +44,16 @@ Live App includes: Storefront Catalog, Room Bundles, Dynamic PDP with Tenure Cal
           </div>
 
           <div className="flex items-center gap-2">
+            <a
+              href="/RentEase_Platform_Report.pdf"
+              download="RentEase_Platform_Report.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download PDF</span>
+            </a>
             <button
               onClick={handleCopySummary}
               className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-1.5"
